@@ -1,9 +1,7 @@
-﻿using System;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
-using System.Text.Unicode;
 using RabbitMQ.Client;
-
+using DotEnv.Core;
 
 namespace RabbitMQ{
 public class Producer
@@ -14,15 +12,21 @@ public class Producer
     private readonly string routingKey;
 
     public Producer(){
+        EnvLoader env = new();
+        env.AddEnvFile(".env");
+        env.Load();
+
+        EnvReader reader = new();
         factory = new ConnectionFactory
         {
-            HostName = "localhost",
-            Port = 5672, 
-            UserName = "webhookmq",
-            Password = "fkhZSDHYPB9RhXRY",
-            VirtualHost = "webhookmq"
+            HostName = reader["HOST"],
+            Port = Int32.Parse(reader["PORT"]), 
+            UserName = reader["RBMQUSER"],
+            Password = reader["RBMQPASS"],
+            VirtualHost = reader["VHOST"]
         };
-        exchangeName = "temp_exchange_" + DateTime.Now.Ticks;
+        //exchangeName = "temp_exchange_" + DateTime.Now.Ticks;
+        exchangeName = "Test";
         queueName = "Test";
         routingKey = "Test";
     }
@@ -54,12 +58,11 @@ public class Producer
                                     durable: true,
                                     autoDelete: false
                                     );
-            channel.ConfirmSelect();
             IBasicProperties properties = channel.CreateBasicProperties();
             properties.Persistent = true;
-
+            
             channel.BasicPublish(exchange: exchangeName, routingKey: routingKey, basicProperties: properties, body: body);
-
+            channel.ConfirmSelect();
             // Confirm
              if (!channel.WaitForConfirms(TimeSpan.FromSeconds(5))) // waits for up to 5 seconds
             {
@@ -83,9 +86,9 @@ public class Producer
 
             Console.WriteLine(" [x] Sent {0}", message);
         }
-        Thread.Sleep(10000); // Wait for 10 seconds before clean up
-        //Cleanup Process
-        Cleanup();
+        Thread.Sleep(10000); // Cooldown 10s before clean up
+        //Cleanup Process (This worked but currently not using this)
+        // Cleanup();
     }
 
     private void Cleanup()
