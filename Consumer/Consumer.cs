@@ -36,8 +36,8 @@ namespace RabbitMQ
 
         public void Run()
         {
-            using (var connection = factory.CreateConnection())
-            using (var channel = connection.CreateModel())
+            IConnection connection = factory.CreateConnection();
+            IModel channel = connection.CreateModel();
             {
                 channel.ExchangeDeclare(exchange: exchangeName, type: "direct", durable: true);
                 channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
